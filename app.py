@@ -4,7 +4,7 @@ import joblib
 from pathlib import Path
 
 # =========================
-# Load model artifacts FIRST
+# Load model artifacts
 # =========================
 BASE_DIR = Path(__file__).parent
 
@@ -14,35 +14,29 @@ try:
     loaded_feature_order = joblib.load(BASE_DIR / "feature_order.pkl")
 
     if not isinstance(loaded_feature_order, list):
-        st.error("Error: feature_order.pkl is invalid.")
+        st.error("feature_order.pkl is invalid.")
         st.stop()
 
-except FileNotFoundError:
-    st.error(
-        "Model, scaler, or feature order files not found. "
-        "Ensure fire_model.pkl, scaler.pkl, and feature_order.pkl "
-        "are in the same directory as app.py."
-    )
-    st.stop()
 except Exception as e:
-    st.error(f"Unexpected error while loading files: {e}")
+    st.error(f"Error loading model files: {e}")
     st.stop()
 
 # =========================
 # App UI
 # =========================
-st.title("Forest Fire Occurrence Prediction")
-st.write("Enter the values for the features to predict if a forest fire will occur.")
+st.title("🔥 Forest Fire Occurrence Prediction")
+st.write("Adjust the inputs to predict whether a forest fire is likely to occur.")
 
 # =========================
-# Feature input handling
+# User inputs
 # =========================
 user_input = {}
 
 month_map = {
-    'jan': 'month_jan', 'feb': 'month_feb', 'mar': 'month_mar', 'apr': 'month_apr',
-    'may': 'month_may', 'jun': 'month_jun', 'jul': 'month_jul', 'aug': 'month_aug',
-    'sep': 'month_sep', 'oct': 'month_oct', 'nov': 'month_nov', 'dec': 'month_dec'
+    'jan': 'month_jan', 'feb': 'month_feb', 'mar': 'month_mar',
+    'apr': 'month_apr', 'may': 'month_may', 'jun': 'month_jun',
+    'jul': 'month_jul', 'aug': 'month_aug', 'sep': 'month_sep',
+    'oct': 'month_oct', 'nov': 'month_nov', 'dec': 'month_dec'
 }
 
 day_map = {
@@ -50,16 +44,16 @@ day_map = {
     'thu': 'day_thu', 'fri': 'day_fri', 'sat': 'day_sat', 'sun': 'day_sun'
 }
 
-selected_month_name = st.selectbox("Month", list(month_map.keys()))
-selected_day_name = st.selectbox("Day", list(day_map.keys()))
+selected_month = st.selectbox("Month", list(month_map.keys()))
+selected_day = st.selectbox("Day", list(day_map.keys()))
 
 # Initialize categorical features
 for col in loaded_feature_order:
     if col.startswith("month_") or col.startswith("day_"):
         user_input[col] = 0
 
-user_input[month_map[selected_month_name]] = 1
-user_input[day_map[selected_day_name]] = 1
+user_input[month_map[selected_month]] = 1
+user_input[day_map[selected_day]] = 1
 
 # =========================
 # Numeric inputs
@@ -75,11 +69,8 @@ user_input['RH'] = st.slider('Relative Humidity (%)', 15, 100, 45)
 user_input['wind'] = st.slider('Wind (km/h)', 0.0, 10.0, 4.0)
 user_input['rain'] = st.slider('Rain (mm)', 0.0, 7.0, 0.0)
 
-# Area excluded from prediction
-user_input['area'] = 0.0
-
 # =========================
-# Prepare input for model
+# Prepare input
 # =========================
 input_df = pd.DataFrame([user_input])
 
@@ -88,21 +79,7 @@ final_input_df = input_df.reindex(
     fill_value=0
 )
 
-# NOW scale (correct place)
 scaled_input = loaded_scaler.transform(final_input_df)
-
-# =========================
-# DEBUG OUTPUT (TEMPORARY)
-# =========================
-st.subheader("DEBUG OUTPUT")
-st.write("Final input DataFrame:")
-st.write(final_input_df)
-
-st.write("Scaled input:")
-st.write(scaled_input)
-
-st.write("Prediction probabilities:")
-st.write(loaded_model.predict_proba(scaled_input))
 
 # =========================
 # Prediction
@@ -112,15 +89,12 @@ if st.button("Predict Fire Occurrence"):
     prediction_proba = loaded_model.predict_proba(scaled_input)
 
     if prediction[0] == 1:
-        st.success(
+        st.error(
             f"🔥 Fire likely to occur "
             f"(Probability: {prediction_proba[0][1]:.2f})"
         )
     else:
-        st.info(
+        st.success(
             f"✅ Fire unlikely to occur "
             f"(Probability: {prediction_proba[0][0]:.2f})"
         )
-
-    st.write("### Input Data Used")
-    st.dataframe(final_input_df)
