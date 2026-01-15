@@ -70,7 +70,7 @@ user_input['wind'] = st.slider('Wind (km/h)', 0.0, 10.0, 4.0)
 user_input['rain'] = st.slider('Rain (mm)', 0.0, 7.0, 0.0)
 
 # =========================
-# Prepare input
+# Prepare input (FIXED)
 # =========================
 input_df = pd.DataFrame([user_input])
 
@@ -79,7 +79,13 @@ final_input_df = input_df.reindex(
     fill_value=0
 )
 
-scaled_input = loaded_scaler.transform(final_input_df)
+# Ensure numeric types
+final_input_df = final_input_df.astype(float)
+
+# Force exact feature names & order for scaler
+scaled_input = loaded_scaler.transform(
+    final_input_df[loaded_feature_order]
+)
 
 # =========================
 # Prediction
