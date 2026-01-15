@@ -77,15 +77,10 @@ input_df = pd.DataFrame([user_input])
 final_input_df = input_df.reindex(
     columns=loaded_feature_order,
     fill_value=0
-)
+).astype(float)
 
-# Ensure numeric types
-final_input_df = final_input_df.astype(float)
-
-# Force exact feature names & order for scaler
-scaled_input = loaded_scaler.transform(
-    final_input_df[loaded_feature_order]
-)
+# 🔑 CRITICAL FIX: use NumPy array
+scaled_input = loaded_scaler.transform(final_input_df.values)
 
 # =========================
 # Prediction
